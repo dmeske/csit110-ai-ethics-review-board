@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ethics Review Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;600;700&family=Space+Mono&display=swap">
+<style>
+/* Layout: a review-board docket — proposal memo on the left of the bench, two votes (risk tier, required action), a docket strip of past rulings. Dark-first "hearing room" palette. */
+:root {
+  --bg: #14161d; --panel: #1d212b; --raise: #262b37; --ink: #f1efe8; --muted: #c2c4cc; --line: #7c8392;
+  --gold: #f2c86b; --red: #ff7b7b; --ok: #79d6a2; --tier1: #ff7b7b; --tier2: #f2c86b; --tier3: #8cc3f2; --tier4: #b9e3c6; --focus: #9cc1ff;
+  --display: "Fraunces", Georgia, serif; --body: "Public Sans", "Segoe UI", Arial, sans-serif; --mono: "Space Mono", "Courier New", monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f4f1ea; --panel: #fffdf8; --raise: #efe9dc; --ink: #1c1d24; --muted: #4b4d57; --line: #858b97;
+  --gold: #7a5200; --red: #a3161c; --ok: #1d6b45; --tier1: #a3161c; --tier2: #7a5200; --tier3: #1e5a8a; --tier4: #1d6b45; --focus: #1d4ed8; color-scheme: light; } }
+:root[data-theme="light"] {
+  --bg: #f4f1ea; --panel: #fffdf8; --raise: #efe9dc; --ink: #1c1d24; --muted: #4b4d57; --line: #858b97;
+  --gold: #7a5200; --red: #a3161c; --ok: #1d6b45; --tier1: #a3161c; --tier2: #7a5200; --tier3: #1e5a8a; --tier4: #1d6b45; --focus: #1d4ed8; color-scheme: light; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 900px; margin: 0 auto; padding-inline: 16px; padding-block: 22px 48px; display: grid; gap: 16px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; line-height: 1.15; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); }
+h2 { font-size: 1.5rem; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font-family: var(--mono); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.docket { display: flex; gap: 6px; flex-wrap: wrap; }
+.docket span { font-family: var(--mono); font-size: .78rem; border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; color: var(--muted); }
+.docket span.cur { color: var(--ink); border-color: var(--gold); }
+.docket span.good { color: var(--ok); border-color: var(--ok); }
+.docket span.part { color: var(--gold); border-color: var(--gold); }
+.docket span.miss { color: var(--red); border-color: var(--red); }
+.memo { background: var(--raise); border-radius: 8px; padding: 16px; display: grid; gap: 8px; }
+.memo dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+.memo dt { font-family: var(--mono); font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding-top: 3px; }
+.memo dd { margin: 0; min-width: 0; }
+@media (max-width: 520px) { .memo dl { grid-template-columns: 1fr; } .memo dt { padding-top: 6px; } }
+fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 14px; margin: 0; display: grid; gap: 10px; }
+legend { font-weight: 700; padding: 0 6px; }
+.tiers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 640px) { .tiers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.opt { font: inherit; text-align: left; border: 2px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 10px 12px; cursor: pointer; min-height: 44px; display: grid; gap: 2px; }
+.opt .k { font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+.opt .t { font-weight: 700; }
+.opt .d { font-size: .85rem; color: var(--muted); }
+.opt[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 2px var(--gold); }
+.opt.right { border-color: var(--ok); box-shadow: inset 0 0 0 2px var(--ok); }
+.opt.wrong { border-color: var(--red); box-shadow: inset 0 0 0 2px var(--red); }
+.opt:disabled { cursor: default; }
+.t1 { color: var(--tier1); } .t2 { color: var(--tier2); } .t3 { color: var(--tier3); } .t4 { color: var(--tier4); }
+.acts { display: grid; gap: 8px; }
+button.go { font: inherit; font-weight: 700; border: 2px solid var(--gold); background: var(--gold); color: var(--bg); border-radius: 8px; padding: 10px 18px; cursor: pointer; min-height: 44px; justify-self: start; }
+button.go:disabled { opacity: .45; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.ruling { border-left: 4px solid var(--gold); padding: 6px 0 6px 14px; display: grid; gap: 8px; }
+.note { font-size: .9rem; color: var(--muted); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--line); padding: 8px; text-align: left; font-variant-numeric: tabular-nums; }
+th { background: var(--raise); }
+.tablewrap { overflow-x: auto; }
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header style="display:grid;gap:10px;">
+    <p class="eyebrow">CSIT 110 &middot; Module 9 &middot; Game</p>
+    <h1>Ethics Review Board</h1>
+    <p>You sit on the AI review board for <strong>Tri-County Services Group</strong>, a fictional organization that operates in the European Union. Before any AI system launches, the board votes twice: <strong>which EU AI Act risk tier it falls into</strong>, and <strong>what the board should require</strong>. You&rsquo;ll hear 8 of 12 proposals.</p>
+    <nav class="docket" id="docket" aria-label="Proposals reviewed"></nav>
+  </header>
+
+  <main class="panel" id="game" aria-labelledby="ptitle">
+    <p class="eyebrow" id="pnum">Proposal 1 of 8</p>
+    <h2 id="ptitle" tabindex="-1">Proposal</h2>
+    <div class="memo">
+      <dl>
+        <dt>Requested by</dt><dd id="pteam"></dd>
+        <dt>What it does</dt><dd id="pwhat"></dd>
+        <dt>Who it affects</dt><dd id="pwho"></dd>
+      </dl>
+    </div>
+    <fieldset>
+      <legend>Vote 1: Which risk tier? <span class="note">(keys 1&ndash;4)</span></legend>
+      <div class="tiers" id="tierOpts"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Vote 2: What should the board require? <span class="note">(keys A&ndash;C)</span></legend>
+      <div class="acts" id="actOpts"></div>
+    </fieldset>
+    <button type="button" class="go" id="submit" disabled>Cast both votes</button>
+    <section class="ruling" id="ruling" hidden tabindex="-1" aria-labelledby="rhead">
+      <h3 id="rhead">Board ruling</h3>
+      <div id="rbody2" style="display:grid;gap:8px;"></div>
+      <button type="button" class="go" id="next">Next proposal</button>
+    </section>
+    <p class="sr" aria-live="polite" id="live"></p>
+  </main>
+
+  <section class="panel" id="results" hidden aria-labelledby="restitle">
+    <p class="eyebrow">Session adjourned</p>
+    <h2 id="restitle" tabindex="-1">Your voting record</h2>
+    <div id="resbody" style="display:grid;gap:12px;"></div>
+    <button type="button" class="go" id="again">Hear new proposals</button>
+  </section>
+
+  <p class="note">Risk tiers follow the EU AI Act as amended in 2026, simplified for learning. Bans on unacceptable-risk practices have applied since February 2, 2025; most high-risk obligations for areas like hiring now apply from December 2, 2027. All organizations and proposals are fictional. This game is practice, not legal advice.</p>
+</div>
+
+<script>
+(function () {
+  const TIERS = [
+    { id: 1, name: "Unacceptable", d: "Banned", cls: "t1" },
+    { id: 2, name: "High risk", d: "Strict rules", cls: "t2" },
+    { id: 3, name: "Limited risk", d: "Must disclose AI", cls: "t3" },
+    { id: 4, name: "Minimal risk", d: "No extra rules", cls: "t4" }
+  ];
+  const BANNED = "Reject it. This practice is banned under the AI Act, so no safeguards can make it allowed.";
+  const PROPS = [
+    { title: "Resident trust scores", team: "City partnerships office", what: "Gives residents a &ldquo;civic trust score&rdquo; based on online behavior and minor fines. Low scores mean slower access to public services.", who: "Every resident in the service area", tier: 1,
+      acts: [BANNED, "Approve it if residents can see their own score.", "Approve it with a human reviewing low scores."], best: 0,
+      why: "Social scoring that leads to unfair treatment is one of the AI Act&rsquo;s banned practices. Transparency or human review doesn&rsquo;t make it allowed." },
+    { title: "Employee mood monitor", team: "Call-center operations", what: "Uses webcams to read employees&rsquo; facial expressions during shifts and flags anyone who seems &ldquo;disengaged&rdquo; to managers.", who: "Call-center staff", tier: 1,
+      acts: ["Approve it if employees sign a consent form.", BANNED, "Approve it with a quarterly accuracy audit."], best: 1,
+      why: "Emotion recognition in the workplace is banned under the AI Act, except for medical or safety reasons. A consent form doesn&rsquo;t change that, especially when the employer holds power over the employee." },
+    { title: "R&eacute;sum&eacute; ranker", team: "Human resources", what: "Ranks job applicants and sends the top 20% to recruiters. The rest are not reviewed by a person.", who: "Job applicants", tier: 2,
+      acts: ["Approve it as is; it saves recruiters time.", "Approve only with bias testing across groups, human review of rejected applicants, clear records, and notice to applicants.", BANNED], best: 1,
+      why: "AI used in hiring is high risk. It isn&rsquo;t banned, but it needs bias testing, human oversight, documentation, and transparency to the people affected." },
+    { title: "Loan approval model", team: "Member lending", what: "Decides whether personal-loan applicants are approved and sets their interest rate.", who: "Loan applicants", tier: 2,
+      acts: ["Approve only with bias testing, a human who can override decisions, plain-language reasons for denials, and an appeal process.", "Approve it if the model is more accurate than the old one.", "Approve it; credit decisions are minimal risk."], best: 0,
+      why: "AI that evaluates people&rsquo;s creditworthiness is high risk. Accuracy alone isn&rsquo;t enough; people need fairness testing, oversight, and a way to challenge decisions." },
+    { title: "Exam grading assistant", team: "Adult education program", what: "Scores certification exams and decides who passes.", who: "Adult learners", tier: 2,
+      acts: [BANNED, "Approve it if the scores are shown with two decimal places.", "Approve only with accuracy testing across student groups, teacher review of pass/fail decisions, and a way for students to appeal."], best: 2,
+      why: "AI that evaluates learning outcomes in education is high risk. Teachers must stay in control of the decisions that matter." },
+    { title: "Website help chatbot", team: "Customer service", what: "Answers common questions about office hours, billing, and forms on the public website.", who: "Website visitors", tier: 3,
+      acts: ["Approve it, and make sure visitors are clearly told they&rsquo;re talking with an AI.", BANNED, "Approve only after a full high-risk conformity review."], best: 0,
+      why: "A general customer-service chatbot is limited risk. The key rule is transparency: people must know they&rsquo;re interacting with AI." },
+    { title: "AI-made promo video", team: "Marketing", what: "Creates a realistic video of a &ldquo;customer&rdquo; who doesn&rsquo;t exist praising the organization.", who: "The public", tier: 3,
+      acts: ["Approve it as is; it&rsquo;s just marketing.", "Approve it only if it&rsquo;s clearly labeled as AI-generated (and consider not using a fake testimonial at all).", BANNED], best: 1,
+      why: "Realistic AI-generated content falls under the Act&rsquo;s transparency rules: it must be labeled. A fake testimonial also raises honesty problems beyond the AI Act." },
+    { title: "Email spam filter", team: "IT department", what: "Moves likely spam and phishing emails into a junk folder.", who: "Staff email users", tier: 4,
+      acts: ["Approve only after a full high-risk conformity review.", BANNED, "Approve it. No extra AI Act rules apply, though good practice still matters."], best: 2,
+      why: "Spam filtering is minimal risk. The AI Act adds no special obligations, though the organization can still follow voluntary codes of conduct." },
+    { title: "Face database builder", team: "Security office", what: "Collects photos from social media across the internet to build a face database for identifying visitors.", who: "Anyone with a public photo online", tier: 1,
+      acts: ["Approve it if the photos are already public.", "Approve it with encryption.", BANNED], best: 2,
+      why: "Untargeted scraping of facial images from the internet to build face recognition databases is a banned practice under the AI Act." },
+    { title: "Patient triage support", team: "Community health clinic", what: "Software that is part of a medical device and helps nurses decide which patients are seen first.", who: "Clinic patients", tier: 2,
+      acts: ["Approve only with clinical testing across patient groups, nurse override, and clear records.", "Approve it as is; nurses will catch mistakes.", BANNED], best: 0,
+      why: "AI in regulated products like medical devices is high risk (those rules apply from August 2, 2028). Assuming nurses will catch errors invites automation bias." },
+    { title: "Video game opponents", team: "Recreation center", what: "Controls the computer players in the center&rsquo;s arcade games.", who: "Arcade visitors", tier: 4,
+      acts: ["Approve it. No extra AI Act rules apply.", "Approve only if every player signs a consent form.", BANNED], best: 0,
+      why: "AI in video games is a classic example of minimal risk." },
+    { title: "Crime prediction profiles", team: "Public safety office", what: "Predicts which individual residents will commit a crime, based only on their personality traits and profile data.", who: "All residents", tier: 1,
+      acts: ["Approve it with a monthly bias audit.", BANNED, "Approve it if police make the final decision."], best: 1,
+      why: "Predicting that a person will commit a crime based solely on profiling or personality traits is banned under the AI Act." }
+  ];
+  const $ = id => document.getElementById(id);
+  let deck = [], i = 0, sel = { t: null, a: null }, done = false, record = [];
+  const shuffle = a => { a = a.slice(); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+  function start() { deck = shuffle(PROPS).slice(0, 8); i = 0; record = []; $("results").hidden = true; $("game").hidden = false; show(false); }
+  function docket() {
+    $("docket").innerHTML = deck.map((p, n) => { const r = record[n]; let cls = n === i && !$("game").hidden ? "cur" : ""; let label = `${n + 1}`;
+      if (r) { cls = r.t && r.a ? "good" : (r.t || r.a ? "part" : "miss"); label += r.t && r.a ? " ✓✓" : r.t || r.a ? " ✓" : " ✕"; }
+      return `<span class="${cls}">${label}</span>`; }).join("");
+  }
+  function show(focus) {
+    const p = deck[i]; done = false; sel = { t: null, a: null };
+    $("pnum").textContent = `Proposal ${i + 1} of ${deck.length}`; $("ptitle").innerHTML = p.title;
+    $("pteam").innerHTML = p.team; $("pwhat").innerHTML = p.what; $("pwho").innerHTML = p.who;
+    $("tierOpts").innerHTML = TIERS.map(t => `<button type="button" class="opt" data-t="${t.id}" aria-pressed="false"><span class="k" aria-hidden="true">${t.id}</span><span class="t ${t.cls}">${t.name}</span><span class="d">${t.d}</span></button>`).join("");
+    $("actOpts").innerHTML = p.acts.map((a, n) => `<button type="button" class="opt" data-a="${n}" aria-pressed="false"><span class="k" aria-hidden="true">${"ABC"[n]}</span><span>${a}</span></button>`).join("");
+    $("ruling").hidden = true; $("submit").hidden = false; $("submit").disabled = true; docket();
+    if (focus) $("ptitle").focus();
+  }
+  function choose(kind, v) {
+    if (done) return; sel[kind] = v;
+    const box = kind === "t" ? $("tierOpts") : $("actOpts");
+    box.querySelectorAll(".opt").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset[kind] === v)));
+    $("submit").disabled = sel.t === null || sel.a === null;
+  }
+  $("tierOpts").addEventListener("click", e => { const b = e.target.closest(".opt"); if (b) choose("t", +b.dataset.t); });
+  $("actOpts").addEventListener("click", e => { const b = e.target.closest(".opt"); if (b) choose("a", +b.dataset.a); });
+  $("submit").addEventListener("click", () => {
+    if (done || sel.t === null || sel.a === null) return; done = true; const p = deck[i];
+    const tOk = sel.t === p.tier, aOk = sel.a === p.best; record[i] = { t: tOk, a: aOk, tier: p.tier };
+    $("tierOpts").querySelectorAll(".opt").forEach(b => { b.disabled = true; const v = +b.dataset.t; if (v === p.tier) b.classList.add("right"); else if (v === sel.t) b.classList.add("wrong"); });
+    $("actOpts").querySelectorAll(".opt").forEach(b => { b.disabled = true; const v = +b.dataset.a; if (v === p.best) b.classList.add("right"); else if (v === sel.a) b.classList.add("wrong"); });
+    const T = TIERS[p.tier - 1];
+    $("rbody2").innerHTML = `<p><strong>Risk tier:</strong> ${tOk ? "Correct" : "Not quite"} &mdash; <span class="${T.cls}"><strong>${T.name}</strong></span>.</p>
+      <p><strong>Requirement:</strong> ${aOk ? "Correct" : "Not quite"} &mdash; ${p.acts[p.best]}</p><p>${p.why}</p>`;
+    $("next").textContent = i < deck.length - 1 ? "Next proposal" : "See your voting record";
+    $("submit").hidden = true; $("ruling").hidden = false; docket();
+    $("live").textContent = `Tier ${tOk ? "correct" : "incorrect"}, requirement ${aOk ? "correct" : "incorrect"}.`;
+    $("ruling").focus();
+  });
+  $("next").addEventListener("click", () => { if (i < deck.length - 1) { i++; show(true); } else results(); });
+  function results() {
+    $("game").hidden = true; $("results").hidden = false; docket();
+    const tScore = record.filter(r => r.t).length, aScore = record.filter(r => r.a).length, total = tScore + aScore;
+    const by = TIERS.map(t => { const rs = record.filter(r => r.tier === t.id); return { t, n: rs.length, ok: rs.filter(r => r.t).length }; }).filter(x => x.n);
+    let best = total; try { const prev = +localStorage.getItem("reviewBoardBest") || 0; best = Math.max(prev, total); if (total > prev) localStorage.setItem("reviewBoardBest", String(total)); } catch (e) {}
+    const title = total >= 15 ? "Board Chair" : total >= 12 ? "Senior Reviewer" : total >= 8 ? "Board Member" : "New Appointee";
+    $("resbody").innerHTML = `<p><strong>${title}.</strong> ${total} of 16 votes matched the AI Act: ${tScore} risk tiers and ${aScore} requirements.</p>
+      <div class="tablewrap" tabindex="0" role="region" aria-label="Accuracy by risk tier"><table><caption class="sr">Accuracy by risk tier</caption>
+      <thead><tr><th scope="col">Correct tier</th><th scope="col">You classified correctly</th></tr></thead>
+      <tbody>${by.map(x => `<tr><th scope="row" class="${x.t.cls}">${x.t.name}</th><td>${x.ok} of ${x.n}</td></tr>`).join("")}</tbody></table></div>
+      <p><strong>Remember the shape of the law:</strong> a few uses are banned outright; uses that affect people&rsquo;s jobs, money, education, health, or rights are high risk and need testing, oversight, and records; chatbots and AI-made media must be disclosed; most everyday AI has no extra rules.</p>
+      <p class="note">Your best on this device: ${best} of 16. Compare: UNESCO&rsquo;s Recommendation sets values for governments, and Google&rsquo;s principles are voluntary. Only the AI Act carries legal penalties.</p>`;
+    $("restitle").focus();
+  }
+  $("again").addEventListener("click", start);
+  document.addEventListener("keydown", e => {
+    if ($("game").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (["1", "2", "3", "4"].includes(k)) choose("t", +k);
+    else if (["a", "b", "c"].includes(k)) choose("a", "abc".indexOf(k));
+  });
+  start();
+})();
+</script>
+</body>
+</html>
